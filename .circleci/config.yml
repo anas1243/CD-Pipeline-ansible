@@ -9,12 +9,12 @@ jobs:
       - run:
           name: "Create Network"
           command: |
-            bash createInfra.sh createNetwork cloudFormation/network.yml cloudFormation/network.json
+            bash cloudFormation/createInfra.sh createNetwork cloudFormation/network.yml cloudFormation/network.json
             aws cloudformation wait stack-create-complete --stack-name createNetwork
       - run:
           name: "provision Servers"
           command: |
-            bash createInfra.sh createServers cloudFormation/servers.yml cloudFormation/servers.json
+            bash cloudFormation/createInfra.sh createServers cloudFormation/servers.yml cloudFormation/servers.json
             aws cloudformation wait stack-create-complete --stack-name createServers
       - run:
           name: "Get servers Public IP to make inventory file for Ansible"
@@ -27,7 +27,7 @@ jobs:
       - image: python:3.7-alpine3.11
     steps:
       - checkout
-      - add_ssh-keys:
+      - add_ssh_keys:
           fingerprints: ["e0:50:f0:b9:25:d3:94:72:69:ec:53:e4:09:30:d3:4b"]
       - run:
           name: Install Ansible
