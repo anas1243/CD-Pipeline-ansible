@@ -10,23 +10,22 @@ Parameters:
     Type: String
 
 Resources:
-
-WebApp:
-  Type: AWS::EC2::Instance
-  Properties:
-    KeyName: GP-user_keyPairs
-    ImageId: ami-0747bdcabd34c712a
-    InstanceType: t2.small
-    Monitoring: true
-    SubnetId:
-      Fn::ImportValue: !Sub ${EnvironmentName}-PUB1-SN
-    SecurityGroupIds:
-      - Ref: WebServerSecGroup
-    Tags:
-      - Key: Name
-        Value: !Sub ${EnvironmentName}-webServer
-      - Key: Project
-        Value: !Ref ProjectName
+  WebApp:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName: GP-user_keyPairs
+      ImageId: ami-0747bdcabd34c712a
+      InstanceType: t2.small
+      Monitoring: true
+      SubnetId:
+        Fn::ImportValue: !Sub ${EnvironmentName}-PUB1-SN
+      SecurityGroupIds:
+        - Ref: WebServerSecGroup
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-webServer
+        - Key: Project
+          Value: !Ref ProjectName
 
   WebServerSecGroup:
     Type: AWS::EC2::SecurityGroup
