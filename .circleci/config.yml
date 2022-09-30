@@ -1,11 +1,30 @@
 version: 2.1
 
+commands:
+  rollback:
+    description: "Make Infrastucture rollback when the pipeline fails"
+    parameters:
+      stage:
+        type: string
+    steps:
+      - run:
+          name: Failure
+          command: |
+            aws cloudformation delete-stack --stack-name createServers
+            echo failed_<< parameters.stage >>_step
+            aws cloudformation wait stack-delete-complete --stack-name createServers
+            aws cloudformation delete-stack --stack-name createNetwork
+          when: on_fail
 jobs:
   build-infra:
     docker:
       - image: amazon/aws-cli
     steps:
       - checkout
+      - run:
+          name: Install tar utility
+          command: |
+            yum install -y tar gzip
       - run:
           name: "Create Network"
           command: |
@@ -19,24 +38,44 @@ jobs:
       - run:
           name: "Get servers Public IP to make inventory file for Ansible"
           command: |
-            touch inventory echo [all] > Ansible/inventory
-            aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicIpAddress'--filters "Name=tag:Project,Values=CD-Pipeline-ansbile" --output text >> Ansible/inventory
+            mkdir -p Ansible
+            echo [all] > Ansible/inventory
+            aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicIpAddress' --filters "Name=tag:Project,Values=CD-Pipeline-ansbile" --output text >> Ansible/inventory
+      - persist_to_workspace:
+          root: Ansible
+          paths:
+            - inventory
+
+      - rollback:
+          stage: Create_Infra
 
   configure-infra:
     docker:
-      - image: python:3.7-alpine3.11
+      - image: amazon/aws-cli
     steps:
       - checkout
       - add_ssh_keys:
           fingerprints: ["e0:50:f0:b9:25:d3:94:72:69:ec:53:e4:09:30:d3:4b"]
       - run:
-          name: Install Ansible
+          name: Install Ansible and tar
           command: |
-            apk add --update ansible
+            yum install -y tar gzip
+            amazon-linux-extras install ansible2 -y
+      - run:
+          name: make directory for workspace
+          command: mkdir -p AnsibleWorkspace
+      - attach_workspace:
+          at: AnsibleWorkspace
       - run:
           name: Configure the Provisioned Infra
           command: |
-            ansible-playbook -i Ansible/inventory Ansible/main.yml
+            cat AnsibleWorkspace/inventory
+            cp Ansible/ansible.cfg ~/.ansible.cfg
+            cat ~/.ansible.cfg
+            ansible-playbook -i AnsibleWorkspace/inventory Ansible/main.yml
+
+      - rollback:
+          stage: Configure_servers
 workflows:
   CD:
     jobs:
