@@ -1,0 +1,10 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "Prod"
+  },
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "CD-Pipeline-ansbile"
+  }
+]

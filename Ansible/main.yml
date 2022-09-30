@@ -1,0 +1,9 @@
+---
+- name: Set up an ubuntu Public EC2 provisioned by circleci and cloudformation
+  hosts: all
+  user: ubuntu
+  become: true
+  become_method: sudo
+  become_user: root
+  roles:
+    - config-infra

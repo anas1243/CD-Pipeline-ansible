@@ -1,0 +1,46 @@
+version: 2.1
+
+jobs:
+  build-infra:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: "Create Network"
+          command: |
+            bash createInfra.sh createNetwork cloudFormation/network.yml cloudFormation/network.json
+            aws cloudformation wait stack-create-complete --stack-name createNetwork
+      - run:
+          name: "provision Servers"
+          command: |
+            bash createInfra.sh createServers cloudFormation/servers.yml cloudFormation/servers.json
+            aws cloudformation wait stack-create-complete --stack-name createServers
+      - run:
+          name: "Get servers Public IP to make inventory file for Ansible"
+          command: |
+            touch inventory echo [all] > Ansible/inventory
+            aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicIpAddress'--filters "Name=tag:Project,Values=CD-Pipeline-ansbile" --output text >> Ansible/inventory
+
+  configure-infra:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - add_ssh-keys:
+          fingerprints: ["e0:50:f0:b9:25:d3:94:72:69:ec:53:e4:09:30:d3:4b"]
+      - run:
+          name: Install Ansible
+          command: |
+            apk add --update ansible
+      - run:
+          name: Configure the Provisioned Infra
+          command: |
+            ansible-playbook -i Ansible/inventory Ansible/main.yml
+workflows:
+  CD:
+    jobs:
+      - build-infra
+      - configure-infra:
+          requires:
+            - build-infra
